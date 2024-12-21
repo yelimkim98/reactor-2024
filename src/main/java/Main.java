@@ -1,11 +1,12 @@
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public class Main {
 
   public static void main(String[] args) {
-    Flux.fromArray(new Integer[]{3, 6, 7, 9,})
-        .filter(num -> num > 6)
-        .map(num -> num * 2)
-        .subscribe(System.out::println);
+    Flux<String> flux = Mono.justOrEmpty("Steve")
+        .concatWith(Mono.justOrEmpty("Jobs"));
+
+    flux.subscribe(System.out::println);
   }
 }
