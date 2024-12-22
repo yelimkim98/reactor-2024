@@ -1,28 +1,34 @@
-import java.time.Duration;
-import reactor.core.publisher.Flux;
+import com.jayway.jsonpath.JsonPath;
+import java.net.URI;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 public class Main {
 
   public static void main(String[] args) throws InterruptedException {
-    String[] singers = {"A", "B", "C", "D", "E"};
+    URI worldTimeUri = UriComponentsBuilder.newInstance()
+        .scheme("http")
+        .host("worldtimeapi.org")
+        .port(80)
+        .path("/api/timezone/Asia/Seoul")
+        .build()
+        .encode()
+        .toUri();
 
-    System.out.println("# begin concert:");
+    Mono<String> mono = getWorldTime(worldTimeUri);
+    mono.subscribe(datetime -> System.out.printf("# datetime 1: %s%n", datetime));
+    Thread.sleep(2000);
+    mono.subscribe(datetime -> System.out.printf("# datetime 2: %s%n", datetime));
+    Thread.sleep(2000);
+  }
 
-    Flux<String> concertFlux =
-        Flux
-            .fromArray(singers)
-            .delayElements(Duration.ofSeconds(1))
-            .share();
-
-    concertFlux.subscribe(
-        singer -> System.out.println(String.format("# Subscriber1 is watching %s's song", singer))
-    );
-    Thread.sleep(2500);
-
-    concertFlux.subscribe(
-        singer -> System.out.println(String.format("# Subscriber2 is watching %s's song", singer))
-    );
-    Thread.sleep(3000);
+  private static Mono<String> getWorldTime(URI worldTimeUri) {
+    return WebClient.create()
+        .get()
+        .uri(worldTimeUri)
+        .retrieve()
+        .bodyToMono(String.class)
+        .map(response -> JsonPath.parse(response).read("$.datetime"));
   }
 }
