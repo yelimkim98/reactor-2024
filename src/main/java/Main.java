@@ -1,34 +1,33 @@
-import com.jayway.jsonpath.JsonPath;
-import java.net.URI;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.util.UriComponentsBuilder;
-import reactor.core.publisher.Mono;
+import lombok.SneakyThrows;
+import org.reactivestreams.Subscription;
+import reactor.core.publisher.BaseSubscriber;
+import reactor.core.publisher.Flux;
 
 public class Main {
 
-  public static void main(String[] args) throws InterruptedException {
-    URI worldTimeUri = UriComponentsBuilder.newInstance()
-        .scheme("http")
-        .host("worldtimeapi.org")
-        .port(80)
-        .path("/api/timezone/Asia/Seoul")
-        .build()
-        .encode()
-        .toUri();
+  public static void main(String[] args) {
+    Flux.range(1, 5)
+        .doOnRequest(data -> System.out.printf("# doOnRequest: %s\n", data))
+        .subscribe(new BaseSubscriber<Integer>() {
 
-    Mono<String> mono = getWorldTime(worldTimeUri);
-    mono.subscribe(datetime -> System.out.printf("# datetime 1: %s%n", datetime));
-    Thread.sleep(2000);
-    mono.subscribe(datetime -> System.out.printf("# datetime 2: %s%n", datetime));
-    Thread.sleep(2000);
-  }
+          /*
+           구독 시점에 실행됨
+           */
+          @Override
+          protected void hookOnSubscribe(Subscription subscription) {
+            request(1);  // subscription.request(1) 호출
+          }
 
-  private static Mono<String> getWorldTime(URI worldTimeUri) {
-    return WebClient.create()
-        .get()
-        .uri(worldTimeUri)
-        .retrieve()
-        .bodyToMono(String.class)
-        .map(response -> JsonPath.parse(response).read("$.datetime"));
+          /*
+
+           */
+          @SneakyThrows    // ?
+          @Override
+          protected void hookOnNext(Integer value) {
+            Thread.sleep(2000L);
+            System.out.printf("# hookOnNext: %s\n", value);
+            request(1);    // // subscription.request(1) 호출
+          }
+        });
   }
 }
