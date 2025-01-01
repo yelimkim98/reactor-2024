@@ -1,24 +1,23 @@
-import java.time.Duration;
+import java.util.stream.IntStream;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.scheduler.Schedulers;
 
 public class Main {
 
   public static void main(String[] args) throws InterruptedException {
-    Flux.interval(Duration.ofMillis(1L))    // Publisher : 0.001 초에 한번씩 emit (계속 반복)
-        .onBackpressureError()    // Backpressure 전략 중 ERROR 전략 사용
-        .doOnNext(data -> System.out.printf("# doOnNext: %s\n", data))  // 걍 디버깅용 이라고 함
-        .publishOn(Schedulers.parallel())    // ?
-        .subscribe(data -> {
-              try {
-                Thread.sleep(5L);    // Subscriber 가 데이터 처리하는데 0.005 초 걸리는 시나리오
-              } catch (InterruptedException e) {
-              }
+    int tasks = 6;
 
-              System.out.printf("# onNext : %s\n", data);
-            },
-            error -> System.out.println("# onError"));
+    Flux.create((FluxSink<String> sink) -> IntStream.range(1, tasks)
+        .forEach(n -> sink.next("task " + n + " result")))
+        .subscribeOn(Schedulers.boundedElastic())
+        .doOnNext(n -> System.out.printf("### [%s] create(): %s\n", Thread.currentThread().getName(),n))
+        .publishOn(Schedulers.parallel())
+        .map(result -> result + " success!")
+        .doOnNext(n -> System.out.printf("### [%s] map(): %s\n", Thread.currentThread().getName(),n))
+        .publishOn(Schedulers.parallel())
+        .subscribe(data -> System.out.printf("### [%s] onNext: %s\n", Thread.currentThread().getName(), data));
 
-    Thread.sleep(2000L);
+    Thread.sleep(500L);
   }
 }
