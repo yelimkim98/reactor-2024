@@ -1,4 +1,5 @@
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 public class Main {
 
@@ -14,8 +15,10 @@ public class Main {
     Flux
         .fromArray(new Integer[] {1, 3, 5, 7})
         .doOnNext(data -> System.out.printf("# [%s] doOnNext fromArray: %s\n", Thread.currentThread().getName(), data))
+        .publishOn(Schedulers.parallel())
         .filter(data -> data > 3)
         .doOnNext(data -> System.out.printf("# [%s] doOnNext filter: %s\n", Thread.currentThread().getName(), data))
+        .publishOn(Schedulers.parallel())
         .map(data -> data * 10)
         .doOnNext(data -> System.out.printf("# [%s] doOnNext map: %s\n", Thread.currentThread().getName(), data))
         .subscribe(data -> System.out.printf("# [%s] onNext: %s\n", Thread.currentThread().getName(), data));
