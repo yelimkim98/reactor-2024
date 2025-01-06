@@ -12,17 +12,21 @@ public class Main {
    * 별도의 비동기 처리(ex: Schedulers)를 명시적으로 추가하지 않았기 때문에, 모든 연산은 순차적으로 실행됩니다.
    */
   public static void main(String[] args) throws InterruptedException {
-    Flux
-        .fromArray(new Integer[] {1, 3, 5, 7})
-        .subscribeOn(Schedulers.boundedElastic())
-        .doOnNext(data -> System.out.printf("# [%s] doOnNext fromArray: %s\n", Thread.currentThread().getName(), data))
-        .filter(data -> data > 3)
-        .doOnNext(data -> System.out.printf("# [%s] doOnNext filter: %s\n", Thread.currentThread().getName(), data))
-        .publishOn(Schedulers.parallel())
-        .map(data -> data * 10)
-        .doOnNext(data -> System.out.printf("# [%s] doOnNext map: %s\n", Thread.currentThread().getName(), data))
+    doTask("task1")
         .subscribe(data -> System.out.printf("# [%s] onNext: %s\n", Thread.currentThread().getName(), data));
 
-    Thread.sleep(500L);
+    doTask("task2")
+        .subscribe(data -> System.out.printf("# [%s] onNext: %s\n", Thread.currentThread().getName(), data));
+
+    Thread.sleep(200L);
+  }
+
+  private static Flux<Integer> doTask(String taskName) {
+    return Flux.fromArray(new Integer[]{1, 3, 5, 7})
+        .publishOn(Schedulers.single())
+        .filter(data -> data > 3)
+        .doOnNext(data -> System.out.printf("# [%s] %s doOnNext filter: %s\n", Thread.currentThread().getName(), taskName, data))
+        .map(data -> data * 10)
+        .doOnNext(data -> System.out.printf("# [%s] %s doOnNext map: %s\n", Thread.currentThread().getName(), taskName, data));
   }
 }
